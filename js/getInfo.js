@@ -10,17 +10,25 @@ $(() => {
 })
 
 $('#back').click(function () {
+    $('#table').fadeOut();
     subtractWeek();
     getTimeTable($('#drop-klassenauswahl').val(), getCurrentWeek());
+    $('#table').fadeIn();
+
 });
 
 
 $('#forward').click(function () {
+    $('#table').fadeOut();
     addWeek();
     getTimeTable($('#drop-klassenauswahl').val(), getCurrentWeek());
+    $('#table').fadeIn();
 });
 
 function getBerufe() {
+
+    clearErrors();
+
     $.getJSON("http://sandbox.gibm.ch/berufe.php", function (berufe) {
 
         //appending each to the dropdown
@@ -35,10 +43,14 @@ function getBerufe() {
             $("#drop-berufsgrupe").val(localStorage.getItem('beruf_id'));
         }
 
-    });
+    }).fail(function () { $('#berufsgruppe').prepend(`<div id="beruf-error" class="alert alert-danger">
+    <strong>Warning!</strong> Request failed
+  </div>`) });
 }
 
 function getKlassen(beruf_id) {
+
+    clearErrors();
 
     //getting all klassen for dropdown
     $.getJSON(`http://sandbox.gibm.ch/klassen.php${beruf_id != null ? '?beruf_id=' + beruf_id : ''}`, function (klassen) {
@@ -64,13 +76,18 @@ function getKlassen(beruf_id) {
             getTimeTable(localStorage.getItem('klasse_id'), getCurrentWeek());
         }
 
-    });
+    }).fail(function () { $('#klassenauswahl').prepend(`<div id="klasse-error" class="alert alert-danger">
+    <strong>Warning!</strong> Request failed
+  </div>`) });
 }
 
 function getTimeTable(klasse_id, weekNumber) {
+
+    clearErrors();
+
     //show table
     $('#table').css("display", "block");
-    
+
     $('#week-picker').css("display", "block");
 
     $('#tbody').empty();
@@ -81,7 +98,9 @@ function getTimeTable(klasse_id, weekNumber) {
 
         if (data == 0) {
 
-            $('#tbody').append('No data found');
+            $('#tbody').html(`<div class="alert alert-info w-75">
+            <strong>No data found!</strong>
+          </div>`);
 
         } else {
 
@@ -90,17 +109,19 @@ function getTimeTable(klasse_id, weekNumber) {
 
                 $('#tbody').append(`
                 <tr id="${element.tafel_id}">
-                    <td>${element.tafel_datum}</td>
+                    <td>${moment(element.tafel_datum).format('d. MMMM, YYYY')}</td>
                     <td>${days[element.tafel_wochentag]}</td>
-                    <td>${element.tafel_von}</td>
-                    <td>${element.tafel_bis}</td>
+                    <td>${moment(element.tafel_von, 'HH:mm').format('HH:mm')}</td>
+                    <td>${moment(element.tafel_bis, 'HH:mm').format('HH:mm')}</td>
                     <td>${element.tafel_lehrer}</td>
-                    <td>${element.tafel_fach}</td>
+                    <td>${element.tafel_longfach}</td>
                     <td>${element.tafel_raum}</td>
                 </tr>`)
-            });
+            })
         }
-    });
+    }).fail(function () { $('body').append(`<div  id="table-error" class="alert alert-danger">
+    <strong>Warning!</strong> Request failed.
+  </div>`)});
 }
 
 
@@ -143,8 +164,14 @@ function subtractWeek() {
     date.subtract(1, 'w');
 }
 
-function getYear(){
+function getYear() {
     return date.year();
+}
+
+function clearErrors() {
+    $('#beruf-error').remove();
+    $('#klasse-error').remove();
+    $('#table-error').remove();
 }
 
 
