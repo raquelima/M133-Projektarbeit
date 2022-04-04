@@ -4,8 +4,11 @@ const days = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freita
 var date = moment();
 
 $(() => {
-    
+
+    //gets all berufe and appends them to dropdown
     getBerufe();
+
+    //gets klassen, in case there is a beruf_id in localstorage it filters them and appends to dropdown 
     getKlassen(localStorage.getItem('beruf_id'));
 })
 
@@ -36,6 +39,9 @@ function getBerufe() {
     //getting all berufe for dropdown
     $.getJSON("http://sandbox.gibm.ch/berufe.php", function (berufe) {
 
+        //removes blank space in the dropdown
+        berufe = berufe.filter(x => !!x.beruf_name);
+
         //appending each to the dropdown
         berufe.forEach(beruf => {
             $('#drop-berufsgrupe').append(`<option value='${beruf.beruf_id}'>${beruf.beruf_name}</option>`)
@@ -47,10 +53,12 @@ function getBerufe() {
             //if not empty then set dropdown value to the id saved in the localstorage
             $("#drop-berufsgrupe").val(localStorage.getItem('beruf_id'));
         }
-    //show warning in case request fails
-    }).fail(function () { $('#berufsgruppe').prepend(`<div id="beruf-error" class="alert alert-danger">
+        //show warning in case request fails
+    }).fail(function () {
+        $('#berufsgruppe').prepend(`<div id="beruf-error" class="alert alert-danger">
     <strong>Warning!</strong> Request failed
-  </div>`) });
+  </div>`)
+    });
 }
 
 function getKlassen(beruf_id) {
@@ -82,9 +90,11 @@ function getKlassen(beruf_id) {
             getTimeTable(localStorage.getItem('klasse_id'), getCurrentWeek());
         }
         //show warning in case request fails
-    }).fail(function () { $('#klassenauswahl').prepend(`<div id="klasse-error" class="alert alert-danger">
+    }).fail(function () {
+        $('#klassenauswahl').prepend(`<div id="klasse-error" class="alert alert-danger">
     <strong>Warning!</strong> Request failed
-  </div>`) });
+  </div>`)
+    });
 }
 
 function getTimeTable(klasse_id, weekNumber) {
@@ -121,7 +131,7 @@ function getTimeTable(klasse_id, weekNumber) {
 
                 $('#tbody').append(`
                 <tr id="${element.tafel_id}">
-                    <td>${moment(element.tafel_datum).format('d. MMMM, YYYY')}</td>
+                    <td>${element.tafel_datum}</td>
                     <td>${days[element.tafel_wochentag]}</td>
                     <td>${moment(element.tafel_von, 'HH:mm').format('HH:mm')}</td>
                     <td>${moment(element.tafel_bis, 'HH:mm').format('HH:mm')}</td>
@@ -132,37 +142,44 @@ function getTimeTable(klasse_id, weekNumber) {
             })
         }
         //show warning in case request fails
-    }).fail(function () { $('body').append(`<div  id="table-error" class="alert alert-danger">
+    }).fail(function () {
+        $('body').append(`<div  id="table-error" class="alert alert-danger">
     <strong>Warning!</strong> Request failed.
-  </div>`)});
+  </div>`)
+    });
 }
 
 
 
 //in case dropdown changes 
 $("#drop-berufsgrupe").change(function () {
-
     //set beruf_id from selected option in localstorage
     localStorage.setItem('beruf_id', $('#drop-berufsgrupe').val());
+
+    $('#drop-klassenauswahl').val('').change();
+    $('#tbody').empty();
+    localStorage.removeItem('klasse_id');
 
     getKlassen(localStorage.getItem('beruf_id'));
 
 });
 
-
 //in case dropdown changes
 $("#drop-klassenauswahl").change(function () {
+    if ($('#drop-klassenauswahl').val()) {
+        //set klasse_id from selected option in localstorage
+        localStorage.setItem('klasse_id', $('#drop-klassenauswahl').val());
 
-    //set klasse_id from selected option in localstorage
-    localStorage.setItem('klasse_id', $('#drop-klassenauswahl').val());
+        //show table 
+        $('#table').css("display", "block");
 
-    //show table 
-    $('#table').css("display", "block");
+        //so that we still get the current week
+        date = moment();
 
-    //so that we still get the current week
-    date = moment();
-
-    getTimeTable($('#drop-klassenauswahl').val(), getCurrentWeek());
+        getTimeTable($('#drop-klassenauswahl').val(), getCurrentWeek());
+    } else {
+        $('#tbody').empty();
+    }
 });
 
 function getCurrentWeek() {
