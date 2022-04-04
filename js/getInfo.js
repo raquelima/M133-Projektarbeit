@@ -1,37 +1,24 @@
-var week = moment().week();
+const days = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"];
 
-var year = moment().year();
+var date = moment();
+
+$(() => {
+    //getting all berufe for dropdown
+    getBerufe();
+    getKlassen(localStorage.getItem('beruf_id'));
+
+})
 
 $('#back').click(function () {
-    week = week - 1;
-    weekNumber = week + "-" + year;
-    $('#week-input').html(weekNumber);
-    getTimeTable($('#drop-klassenauswahl').val(), weekNumber);
+    subtractWeek();
+    getTimeTable($('#drop-klassenauswahl').val(), getCurrentWeek());
 });
 
 
 $('#forward').click(function () {
-    week = week + 1;
-    weekNumber = week + "-" + year;
-    $('#week-input').html(weekNumber);
-    getTimeTable($('#drop-klassenauswahl').val(), weekNumber);
+    addWeek();
+    getTimeTable($('#drop-klassenauswahl').val(), getCurrentWeek());
 });
-
-
-$(() => {
-    $('#week-input').html(getCurrentWeek());
-
-    //getting all berufe for dropdown
-    getBerufe();
-
-    getKlassen(localStorage.getItem('beruf_id'));
-  
-
-})
-
-function getCurrentWeek() {
-    return moment().week() + "-" + moment().year()
-}
 
 function getBerufe() {
     $.getJSON("http://sandbox.gibm.ch/berufe.php", function (berufe) {
@@ -52,6 +39,7 @@ function getBerufe() {
 }
 
 function getKlassen(beruf_id) {
+
     //getting all klassen for dropdown
     $.getJSON(`http://sandbox.gibm.ch/klassen.php${beruf_id != null ? '?beruf_id=' + beruf_id : ''}`, function (klassen) {
 
@@ -72,9 +60,6 @@ function getKlassen(beruf_id) {
             //set dropdown value to the id saved in the localstorage
             $("#drop-klassenauswahl").val(localStorage.getItem('klasse_id'));
 
-            //show table
-            $('#table').css("display", "inline");
-
             //get stundenplan for selected class 
             getTimeTable(localStorage.getItem('klasse_id'), getCurrentWeek());
         }
@@ -83,23 +68,38 @@ function getKlassen(beruf_id) {
 }
 
 function getTimeTable(klasse_id, weekNumber) {
+    //show table
+    $('#table').css("display", "block");
+    
+    $('#week-picker').css("display", "block");
+
+    $('#tbody').empty();
+
+    $('#week-input').html(getCurrentWeek());
 
     $.getJSON(`http://sandbox.gibm.ch/tafel.php?klasse_id=${klasse_id}&woche=${weekNumber}&format=JSON`, function (data) {
 
-        //fill table with new data
-        data.forEach(element => {
+        if (data == 0) {
 
-            $('#tbody').html(`
+            $('#tbody').append('No data found');
+
+        } else {
+
+            //fill table with new data
+            data.forEach(element => {
+
+                $('#tbody').append(`
                 <tr id="${element.tafel_id}">
                     <td>${element.tafel_datum}</td>
-                    <td>${element.tafel_wochentag}</td>
+                    <td>${days[element.tafel_wochentag]}</td>
                     <td>${element.tafel_von}</td>
                     <td>${element.tafel_bis}</td>
                     <td>${element.tafel_lehrer}</td>
                     <td>${element.tafel_fach}</td>
                     <td>${element.tafel_raum}</td>
                 </tr>`)
-        });
+            });
+        }
     });
 }
 
@@ -123,11 +123,30 @@ $("#drop-klassenauswahl").change(function () {
     localStorage.setItem('klasse_id', $('#drop-klassenauswahl').val());
 
     //show table 
-    $('#table').css("display", "inline");
+    $('#table').css("display", "block");
+
+    date = moment();
 
     //getting all timetable data with the klasse_id from the klasse selected 
     getTimeTable($('#drop-klassenauswahl').val(), getCurrentWeek());
 });
+
+function getCurrentWeek() {
+    return date.isoWeek() + "-" + date.year();
+}
+
+function addWeek() {
+    date.add(1, 'w');
+}
+
+function subtractWeek() {
+    date.subtract(1, 'w');
+}
+
+function getYear(){
+    return date.year();
+}
+
 
 
 
